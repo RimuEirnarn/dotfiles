@@ -1,0 +1,3 @@
+#!/bin/sh
+
+py -m http.server -d docs/_build/html

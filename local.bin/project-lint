@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+ARGS=""
+
+if [ -f ./pylint.toml ]; then
+    ARGS="$ARGS --rcfile pylint.toml"
+fi
+
+FILES="$(find . -type f -name '*.py' -not -path './.venv/*' -not -path './t_*')"
+
+#echo "$FILES"
+
+pylint $ARGS $FILES

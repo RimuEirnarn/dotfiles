@@ -1,0 +1,26 @@
+log(){
+	printf "\033[32m[*]\033[0m $1\n"
+}
+
+die(){
+	printf "\033[31m[x]\033[0m $1\n"
+	exit 1
+}
+
+warn(){
+	printf "\033[33m[!]\033[0m $1\n"
+}
+
+ask(){
+    printf "\e[34m[?]\e[0m $1 (y/n): "
+    input
+    return $?
+}
+
+input(){
+    read conf
+    if [ "${conf::1}" = "y" ]; then
+        return 0
+    fi
+    return 1
+}

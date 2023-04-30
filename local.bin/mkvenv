@@ -1,0 +1,67 @@
+#!/usr/bin/bash
+
+source ~/.bash/apk
+
+_ACTIVATED=false
+
+python3 --version 2> /dev/null > /dev/null
+if [ ! "$?" = 0 ]; then
+	warn "Python doesn't seems to exists."
+	python3(){
+		/c/Windows/py "$@"
+	}
+fi
+
+GLOBALVENV="$_venv"
+
+if [ "$GLOBALVENV" = "" ]; then
+    sys="$(/c/Windows/py ~/.local/bin/system.py)"
+    if [ "$sys" = "Windows" ]; then
+	log "Detected Windows"
+	GLOBALVENV=".venv/Scripts/activate"
+    elif [ "$sys" = "Linux" ]; then
+	log "Detected Linux"
+	GLOBALVENV=".venv/bin/activate"
+    elif [ "$sys" = "Darwin" ]; then
+        printf "Fuck you, i don't use MacOS\n"
+	exit 1
+    fi
+fi
+
+
+if [ ! -d .venv ]; then
+    log "Creating venv..."
+    python3 -m venv .venv
+else
+    log "A venv is already exists. Continue installation."
+    ask "While it exists, do you want to rewrite it?"
+    if [ "$x" = 0 ]; then
+        rm -rf .venv
+        python3 -m venv .venv
+    fi
+fi
+
+log "Check if requirements.txt exists"
+if [ -f ./requirements.txt ]; then
+    log "requirements.txt exists, attempt to install."
+    source $GLOBALVENV
+    _ACTIVATED=true
+    pip install -r ./requirements.txt -q
+fi
+
+DEVAPPS="pylint isort autopep8 pycycle"
+
+log "Development Apps: $DEVAPPS (also includes ./dev-requirements.txt)"
+ask "Would you like to install development tools?"
+if [ "$?" = 0 ]; then
+    log "Installing development tools"
+    if [ "$_ACTIVATED" = "false" ]; then
+    	source $GLOBALVENV
+    fi
+    pip install -q $DEVAPPS
+    if [ -f ./dev-requirements.txt ]; then
+        pip install -r ./dev-requirements.txt
+    fi
+fi
+
+log "Instalation completed!"
