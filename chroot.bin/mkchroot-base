@@ -3,6 +3,8 @@
 source ~/.bash/apk
 
 ETC="~/.apps/chroot.bin/etc"
+BIN="$(pwd)"
+
 
 if [ ! -x /usr/bin/sudo ] && [ ! "$UID" = 0 ]; then
     warn "Man, what system are you running on?"
@@ -14,34 +16,80 @@ elif [ "$UID" = 0 ]; then
     }
 fi
 
-if [ -e ~/.local/opt ]; then
+if [ ! -e ~/.local/opt ]; then
     mkdir -p ~/.local/opt
 fi
 
-OUTDIR="~/.local/opt"
+OUTDIR="$HOME/.local/opt"
 
 input_prompt "Okay, you want to setup chroot? what's the system name?"
 read root
 
-input_prompt "(root) How much gigs you want? (e.g: 2G) (MB is appreciated)"
-read root_size
-
 RPATH="$OUTDIR/$root.ext4"
-mkfs -t ext4 $RPATH $root_size
+RHPATH="$OUTDIR/$root-home.ext4"
+if [ ! -e "$OUTDIR/$root.ext4" ]; then
 
-log "Root base system is created"
+    input_prompt "(root) How much gigs you want? (e.g: 2G) (MB is appreciated)"
+    read root_size
 
-input_prompt "(home) How much gigs you want?"
-read home_size
+    RPATH="$OUTDIR/$root.ext4"
+    fallocate -l $root_size $RPATH
+    mkfs -t ext4 $RPATH $root_size
 
-RHPATH="$OUTDIR/$root.ext4"
-mkfs -t ext4 $RHPATH $home_size
+    log "Root base system is created"
+
+    input_prompt "(home) How much gigs you want?"
+    read home_size
+
+    RHPATH="$OUTDIR/$root-home.ext4"
+    fallocate -l $home_size "$RPATH"
+    mkfs -t ext4 $RHPATH $home_size
+fi
 
 tmp="$(mktemp -d)"
 
 sudo mount "$RPATH" $tmp
-if [ -e $tmp/home ]; then
-    mkdir $tmp/home
+if [ ! -d $tmp/home ]; then
+    sudo mkdir $tmp/home
 fi
 
 sudo mount "$RHPATH" $tmp/home
+
+cd $tmp
+
+log $(pwd)
+log "We have reached target, let's get this done."
+
+if [ ! -e $BIN/busybox ]; then
+    sudo $BIN/install-busybox.sh
+else
+    sudo cp $BIN/busybox ./
+fi
+
+log "Create basic linux folders"
+for i in etc dev sys boot mnt media opt proc root run srv tmp var; do
+    sudo mkdir $i
+done
+
+log "now the usr directory"
+sudo mkdir -p usr/{bin,lib,lib32,lib64,libexec,libx32,share,srv,sbin}
+
+sudo chmod 700 root
+sudo chmod 777 tmp
+sudo chmod 755 etc dev sys boot mnt media opt proc run srv var
+
+log "don't forget to symlink"
+for i in bin sbin lib lib32 lib64 libx32; do
+    sudo ln -s /usr/$i $i
+done
+
+log "now, let's install busybox by chroot"
+sudo cp busybox usr/bin
+sudo ln -s /usr/bin/busybox usr/bin/sh
+sudo chroot . /usr/bin/sh -c "/usr/bin/busybox --install -s /usr/bin"
+
+log "It's quite done. You can do anything now. It's better to use schroot to use chroots better"
+
+log "why don't you test it now?"
+
+sudo chroot . /usr/bin/sh
