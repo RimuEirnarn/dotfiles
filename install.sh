@@ -11,10 +11,9 @@ fi
 # Initiate local user binaries
 log "Create ~/.local/bin entries"
 if [ ! -e ~/.local/bin ]; then 
-    cp -r local.bin ~/.local/bin
-else
-    cp -r local.bin/* ~/.local/bin/
+    mkdir -p ~/.local/bin
 fi
+install -t ~/.local/bin local.bin/*
 
 # Initiate my own bash includes.
 log "Create ~/.bash entries"
@@ -34,8 +33,12 @@ fi
 
 # feh helpers
 log "Install feh helpers"
-cp feh-helpers/main.c ~/.apps/c/
-cp feh-helpers/main.bash ~/.apps/bash/feh-helpers
+install feh-helpers/main.c ~/.apps/c/
+install feh-helpers/main.bash ~/.apps/bash/feh-helpers
 ln -s ~/.apps/bash/feh-helpers ~/.local/bin
+
+# chroot helpers
+mkdir -p ~/.apps/chroot.bin
+install chroot.bin/* -t ~/.apps/chroot.bin
 
 exit 0

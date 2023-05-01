@@ -1,0 +1,47 @@
+#!/bin/bash
+
+source ~/.bash/apk
+
+ETC="~/.apps/chroot.bin/etc"
+
+if [ ! -x /usr/bin/sudo ] && [ ! "$UID" = 0 ]; then
+    warn "Man, what system are you running on?"
+    log "Make sure sudo have setuid bit, owner is root, etc. Also!"
+    die "Sudo does not exists :("
+elif [ "$UID" = 0 ]; then
+    sudo(){
+        "$@" # meaningless function?
+    }
+fi
+
+if [ -e ~/.local/opt ]; then
+    mkdir -p ~/.local/opt
+fi
+
+OUTDIR="~/.local/opt"
+
+input_prompt "Okay, you want to setup chroot? what's the system name?"
+read root
+
+input_prompt "(root) How much gigs you want? (e.g: 2G) (MB is appreciated)"
+read root_size
+
+RPATH="$OUTDIR/$root.ext4"
+mkfs -t ext4 $RPATH $root_size
+
+log "Root base system is created"
+
+input_prompt "(home) How much gigs you want?"
+read home_size
+
+RHPATH="$OUTDIR/$root.ext4"
+mkfs -t ext4 $RHPATH $home_size
+
+tmp="$(mktemp -d)"
+
+sudo mount "$RPATH" $tmp
+if [ -e $tmp/home ]; then
+    mkdir $tmp/home
+fi
+
+sudo mount "$RHPATH" $tmp/home
