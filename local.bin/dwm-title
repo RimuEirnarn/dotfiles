@@ -1,0 +1,9 @@
+#!/usr/local/bin/python3.11
+
+from time import sleep, strftime
+from subprocess import run
+
+while True:
+    sleep(1)
+    timed = strftime("%B, %d %Y %T")
+    run(["xsetroot", '-name', f"RimuEirnarn | {timed}"])

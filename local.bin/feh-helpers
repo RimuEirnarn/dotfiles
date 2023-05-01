@@ -1,0 +1,35 @@
+#!/bin/bash
+
+BG_FOLDER="$1"
+
+check_dwm(){
+    pidof dwm >> /dev/null 2>> /dev/null
+    printf "$?"
+}
+
+log(){
+    echo "$1"
+    logger -i "$1"
+}
+
+if [ "$BG_FOLDER" = "" ]; then
+    echo "Where's the directory?"
+    exit 1
+fi
+
+random(){
+    export rand="$(shuf -n 1 -e 300 100 60 120 180 240)"
+}
+
+count(){
+    export counted=$(printf "$rand 60 / p" | dc)
+}
+
+while [ "$(check_dwm)" == "0" ]; do
+    i="$(find $BG_FOLDER -type f | shuf -n 1)"
+    random
+    count
+    log "Set dwm/X11 wallpaper of $DISPLAY with $i then sleep for $counted minutes"
+    feh --bg-fill "$i"
+    sleep $rand
+done
