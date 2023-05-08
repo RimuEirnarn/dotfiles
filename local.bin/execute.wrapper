@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source ~/.bash/apk
+
+log "Executing $1..."
+
+"$@"
+
+log "Program finished! (code $?)"
+read null

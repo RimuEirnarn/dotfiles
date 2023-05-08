@@ -1,0 +1,14 @@
+#!/usr/bin/sh
+
+TERMINAL="xfce4-terminal"
+PROGRAM="$1"
+APPNAME="$2"
+DIR="$(dirname \"$1\")"
+shift 2
+
+kdialog --title "Execute $APPNAME" --yesno "Are you sure want to execute $APPNAME?"
+x=$?
+
+if [ "$x" = 0 ]; then
+    $TERMINAL --hide-menubar --hide-toolbar --hide-scrollbar --title "$APPNAME" --execute ~/.local/bin/execute.wrapper "$PROGRAM"
+fi
