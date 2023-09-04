@@ -1,0 +1,40 @@
+#!/bin/sh
+
+OLD_PATH="$(cat ~/.cache/shexec-neovim.path 2> /dev/null)"
+
+askunlock(){
+    readonlyed="$(nvimlockdir -c)"
+    if [ "$readonlyed" = "True" ]; then
+        kdialog --yesno "It seems the neovim directory has been locked, do you want to unlock it?"
+        if [ "$?" = 0 ]; then
+            st -T neovim -n "Neovim Unlock" nvimlockdir
+        fi
+    fi
+}
+
+if [ ! "$OLD_PATH" = "" ]; then
+    OLD_PATH="$(realpath $OLD_PATH)"
+    cd "$OLD_PATH"
+else
+    OLD_PATH="$(realpath ~)"
+fi
+
+which nvimlockdir 2> /dev/null > /dev/null
+if [ "$?" = 0 ]; then
+    printf "neovim locking script found"
+    askunlock
+fi
+
+path="$(kdialog --getexistingdirectory $OLD_PATH)"
+
+if [ "$path" = "" ]; then
+    notify-send -u low -a Neovim -i neovim Aborted "The directory selector was aborted."
+    exit 1
+fi
+
+
+cd "$path"
+
+printf "$path" > ~/.cache/shexec-neovim.path
+
+exec st -T neovim -n neovim nvim "$path"

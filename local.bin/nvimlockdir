@@ -1,0 +1,38 @@
+#!/usr/local/bin/python3.11
+
+import shell as sh
+from argh import dispatch_command
+from os.path import expanduser
+
+NVIMD = [expanduser(a) for a in ('~/.local/share/nvim', '~/.config/nvim')]
+
+def ismount(path):
+    """Check if path is mountpoint or not"""
+    # X is a mount point
+    # X is not a mount point
+    return not 'not' in sh.mountpoint(path).stdout
+
+def _patch(n):
+    return f'"{n}"'
+
+def unlock():
+    print(sh.sudo(f'umount {" ".join(_patch(n) for n in NVIMD)}').stdout)
+
+def lock():
+    for i in NVIMD:
+        a = _patch(i)
+        print(sh.sudo(f'mount -r --bind {a} {a}').stdout, end='')
+
+def main(check: bool = False):
+    """Lock or unlock neovim directory by mounting read-only. This is a toggle, use -c or --check to check if it's locked or not"""
+    if check:
+        return all(map(ismount, NVIMD))
+    if all(map(ismount, NVIMD)):
+        print("Unlocking")
+        unlock()
+        return
+    print("Locking")
+    lock()
+
+if __name__ == "__main__":
+    dispatch_command(main)
