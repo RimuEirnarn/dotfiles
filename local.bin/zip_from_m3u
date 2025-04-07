@@ -1,0 +1,88 @@
+#!/data/data/com.termux/files/usr/bin/python3
+import zipfile
+import os
+from pathlib import Path
+import argh
+from subprocess import run
+
+
+def parse_m3u(file_path):
+    """Parses M3U and returns a list of file paths."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.read().splitlines()
+
+    # Skip lines that are comments
+    return [line for line in lines if line and not line.startswith('#')]
+
+def parse_m3u_and_rewrite_relative(m3u_path):
+    """
+    Parses M3U and returns:
+    - a list of absolute media file paths (for file existence and reading)
+    - rewritten m3u content with relative paths
+    """
+    m3u_dir = Path(m3u_path).parent.resolve()
+    rewritten_lines = ["#EXTM3U"]
+    media_paths = []
+
+    with open(m3u_path, 'r', encoding='utf-8') as f:
+        lines = f.read().splitlines()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("#EXTINF"):
+            # Add EXTINF as-is
+            rewritten_lines.append(line)
+            i += 1
+            if i < len(lines):
+                abs_path = Path(lines[i]).resolve()
+                media_paths.append(abs_path)
+                # Store just the filename (or relative path)
+                rewritten_lines.append(abs_path.name)
+        i += 1
+
+    return media_paths, "\n".join(rewritten_lines)
+
+
+def share_file(file):
+    run(["termux-share", "-a", "send", file])
+
+@argh.arg('m3u_file', help='Path to the M3U playlist file')
+@argh.arg('zip_file', help='Target zip file to create')
+@argh.arg('-f', '--force', help='Overwrite zip if exists', default=False)
+@argh.arg("-s", "--share", help="Share it through Termux API", default=False)
+def create_zip_from_m3u(m3u_file, zip_file, force=False, share=False):
+    m3u_path = Path(m3u_file)
+    zip_path = Path(zip_file)
+
+    if not m3u_path.exists():
+        print(f"Error: M3U file '{m3u_file}' does not exist.")
+        return
+
+    if zip_path.exists() and not force:
+        print(f"Error: Zip file '{zip_file}' already exists. Use --force to overwrite.")
+        return
+
+    media_paths, rewritten_m3u_content = parse_m3u_and_rewrite_relative(m3u_path)
+
+    with zipfile.ZipFile(zip_path, 'w') as zf:
+        for media_file in media_paths:
+            media_path = Path(media_file)
+            if media_path.exists():
+                print(f"Adding {media_path}")
+                zf.write(media_path, arcname=media_path.name)
+            else:
+                print(f"Warning: File not found -> {media_path}")
+
+        # Also add the M3U file itself
+        zf.writestr(m3u_path.name, rewritten_m3u_content)
+
+    print(f"Created zip: {zip_path}")
+
+    if share:
+        share_file(zip_path)
+
+
+if __name__ == '__main__':
+    import argh
+    argh.dispatch_command(create_zip_from_m3u)
